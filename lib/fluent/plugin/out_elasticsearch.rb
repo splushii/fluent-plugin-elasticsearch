@@ -215,7 +215,7 @@ EOC
       @alias_indexes = []
       @template_names = []
       if !dry_run?
-        if template_name && @template_file
+        if @template_name && @template_file
           if @enable_ilm
             raise Fluent::ConfigError, "deflector_alias is prohibited to use with 'logstash_format at same time." if @logstash_format and @deflector_alias
           end
@@ -224,7 +224,7 @@ EOC
               alias_method :template_installation, :template_installation_actual
             end
           else
-            template_installation_actual(@deflector_alias ? @deflector_alias : @index_name, @application_name, @index_name)
+            template_installation_actual(@deflector_alias ? @deflector_alias : @index_name, @template_name, @customize_template, @application_name, @index_name)
           end
           verify_ilm_working if @enable_ilm
         elsif @templates
@@ -855,16 +855,18 @@ EOC
     def placeholder_substitution_needed_for_template?
       placeholder?(:host, @host.to_s) ||
         placeholder?(:index_name, @index_name.to_s) ||
+        placeholder?(:template_name, @template_name.to_s) ||
+        @customize_template.values.any? { |value| placeholder?(:customize_template, value.to_s) } ||
         placeholder?(:logstash_prefix, @logstash_prefix.to_s) ||
         placeholder?(:deflector_alias, @deflector_alias.to_s) ||
         placeholder?(:application_name, @application_name.to_s)
     end
 
-    def template_installation(deflector_alias, application_name, target_index, host)
+    def template_installation(deflector_alias, template_name, customize_template, application_name, target_index, host)
       # for safety.
     end
 
-    def template_installation_actual(deflector_alias, application_name, target_index, host=nil)
+    def template_installation_actual(deflector_alias, template_name, customize_template, application_name, target_index, host=nil)
       if template_name && @template_file
         if @alias_indexes.include? deflector_alias
           log.debug("Index alias #{deflector_alias} already exists (cached)")
